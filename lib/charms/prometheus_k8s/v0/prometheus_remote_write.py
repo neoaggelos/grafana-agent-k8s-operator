@@ -256,10 +256,19 @@ class AlertRules:
                         for label, val in self.topology.label_matcher_dict.items():
                             if label not in alert_rule["labels"]:
                                 alert_rule["labels"][label] = val
-                        # insert juju topology filters into a prometheus alert rule
+
+                        # always remove the juju_charm label
+                        if "juju_charm" in alert_rule["labels"]:
+                            del alert_rule["labels"]["juju_charm"]
+
+                        # insert juju topology filters into the alert rule (without juju_charm)
+                        label_matcher_dict = self.topology.label_matcher_dict
+                        if "juju_charm" in label_matcher_dict:
+                            del label_matcher_dict["juju_charm"]
+
                         alert_rule["expr"] = self.tool.inject_label_matchers(
                             re.sub(r"%%juju_topology%%,?", "", alert_rule["expr"]),
-                            self.topology.label_matcher_dict,
+                            label_matcher_dict,
                         )
 
             return alert_groups
@@ -1052,7 +1061,7 @@ class PrometheusRemoteWriteProvider(Object):
                             model=labels["juju_model"],
                             application=labels["juju_application"],
                             unit=labels.get("juju_unit", ""),
-                            charm_name=labels.get("juju_charm", ""),
+                            # charm_name=labels.get("juju_charm", ""),
                         )
 
                         # Inject topology and put it back in the list
